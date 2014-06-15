@@ -3,18 +3,94 @@
 
 ## Loading and preprocessing the data
 
+1) Import raw datafile.
 
+```{r}
+setwd("~/Desktop/R/Coursera/ReproducibleResearch/RepData_PeerAssessment1")
+ds = read.csv("activity.csv")
+head(ds)
+```
+
+2)  (No general transformation necessary.)
 
 ## What is mean total number of steps taken per day?
 
+1)  Make a histogram of the total number of steps taken each day
 
+```{r}
+ds.agg = aggregate(steps ~ date, data=ds, FUN=sum)
+hist(ds.agg$steps, breaks=10)
+```
+
+2)  Calculate and report the mean and median total number of steps taken per day
+
+```{r}
+mean(ds.agg$steps)
+median(ds.agg$steps)
+```
 
 ## What is the average daily activity pattern?
 
+1)  Make a time series plot of the average number of steps taken by interval.
 
+```{r}
+ds.int = aggregate(steps ~ interval, data=ds, FUN=mean)
+plot(ds.int$steps, type="l")
+````
+
+2)  Interval 835 is the 5-minute interval contains the maximum number of average steps.
+
+```{r}
+int.max = max(ds.int$steps)
+ds.int[which(ds.int$steps==int.max),]
+```
 
 ## Imputing missing values
 
+1) Calculate the number of missing values
 
+```{r}
+sum(is.na(ds$steps))
+```
+
+2-3)  Replace missing values for a date/interval with the mean for that interval.
+
+```{r}
+ds.imp = merge(ds,ds.int,by="interval",suffixes=c("",".int"),all.x=T)
+ii = is.na(ds.imp$steps)
+ds.imp$steps[ii] = ds.imp$steps.int[ii]
+ds.imp = ds.imp[order(ds.imp$date,ds.imp$interval),]
+head(ds.imp)
+```
+
+4)  Make a histogram of the total number of steps taken each day and calculate the mean/median per day.  Note that the mean is unchanged after the imputation and the median is similar.
+
+```{r}
+ds.imp.agg = aggregate(steps ~ date, data=ds.imp, FUN=sum)
+hist(ds.imp.agg$steps)
+mean(ds.imp.agg$steps)
+median(ds.imp.agg$steps)
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+1)  Create a factor variable indicating whether the day is a weekday or weekend.
+
+```{r}
+ds.imp$weekday = weekdays(as.Date(ds.imp$date))
+ii = ds.imp$weekday %in% c("Saturday","Sunday")
+ds.imp$day.type[ii] = "weekend"
+ds.imp$day.type[!ii] = "weekday"
+ds.imp$day.type = factor(ds.imp$day.type)
+str(ds.imp)
+```
+
+
+2) Plot time series of the average number of steps taken each interval by weekday/weekend.
+
+```{r}
+ds.weekday = aggregate(steps ~ interval + day.type, data=ds.imp, FUN=mean)
+library(lattice)
+xyplot(steps ~ interval | day.type, data=ds.weekday, type="l", layout=c(1,2))
+```
+
